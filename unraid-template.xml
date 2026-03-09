@@ -8,7 +8,7 @@
   <Support>https://github.com/yourusername/likedfm</Support>
   <Project>https://github.com/yourusername/likedfm</Project>
   <Category>Music</Category>
-  <WebUI>http://[IP]:[PORT:8686]</WebUI>
+  <WebUI>http://[IP]:[PORT:8767]</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/yourusername/likedfm/main/unraid-template.xml</TemplateURL>
   <Icon>https://www.last.fm/static/images/lastfm_avatar_social.jpg</Icon>
   <DonateURL></DonateURL>
@@ -20,8 +20,8 @@
     <Mode>bridge</Mode>
     <Publish>
       <Port>
-        <HostPort>8686</HostPort>
-        <ContainerPort>8686</ContainerPort>
+        <HostPort>8767</HostPort>
+        <ContainerPort>8767</ContainerPort>
         <Protocol>tcp</Protocol>
       </Port>
     </Publish>
@@ -99,7 +99,7 @@
     </Variable>
     <Variable>
       <Name>PORT</Name>
-      <Value>8686</Value>
+      <Value>8767</Value>
       <Description>Web UI Port</Description>
       <Display>always</Display>
       <Required>false</Required>

@@ -5,7 +5,7 @@ FROM node:18-alpine AS frontend-build
 WORKDIR /app/frontend
 
 COPY frontend/package*.json ./
-RUN npm ci
+RUN npm install
 
 COPY frontend ./
 RUN npm run build
@@ -17,7 +17,7 @@ FROM node:18-alpine
 RUN apk add --no-cache dumb-init
 
 # Create non-root user
-RUN addgroup -g 1000 likedfm && adduser -D -u 1000 -G likedfm likedfm
+RUN addgroup -g 1001 likedfm && adduser -D -u 1001 -G likedfm likedfm
 
 WORKDIR /app
 
@@ -26,7 +26,7 @@ COPY backend/package*.json ./
 COPY backend/prisma ./prisma
 
 # Install production dependencies
-RUN npm ci --production
+RUN npm install
 
 # Copy backend source
 COPY backend/src ./src
@@ -40,7 +40,7 @@ RUN mkdir -p /app/config && chown -R likedfm:likedfm /app
 # Set environment variables
 ENV NODE_ENV=production
 ENV DATABASE_URL=file:/app/config/likedfm.db
-ENV PORT=8686
+ENV PORT=8767
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
@@ -48,7 +48,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 
 USER likedfm
 
-EXPOSE 8686
+EXPOSE 8767
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
 CMD ["node", "src/index.js"]

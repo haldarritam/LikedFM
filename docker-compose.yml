@@ -1,20 +1,19 @@
-version: '3.8'
-
 services:
   likedfm:
+    build: .
     image: likedfm:latest
     container_name: likedfm
     restart: unless-stopped
 
     # Port mapping
     ports:
-      - "${PORT:-8686}:8686"
+      - "${PORT:-8767}:8767"
 
     # Environment variables
     environment:
       NODE_ENV: production
       DATABASE_URL: file:/app/config/likedfm.db
-      PORT: 8686
+      PORT: 8767
       
       # Last.fm Settings (optional, can be set via UI)
       LASTFM_API_KEY: ${LASTFM_API_KEY:-}

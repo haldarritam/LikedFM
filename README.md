@@ -54,30 +54,31 @@ git clone https://github.com/yourusername/likedfm.git
 cd likedfm
 ```
 
-2. Build the Docker image:
+2. Build and start the container:
 ```bash
-docker-compose build
+docker compose up -d --build
 ```
 
-3. Start the container:
+Or separately:
 ```bash
-docker-compose up -d
+docker compose build
+docker compose up -d
 ```
 
-4. Access the web UI:
+3. Access the web UI:
 ```
-http://localhost:8686
+http://localhost:8767
 ```
 
-5. Configure Last.fm and Lidarr credentials in the Settings page.
+4. Configure Last.fm and Lidarr credentials in the Settings page.
 
-6. Click "Sync Now" to start!
+5. Click "Sync Now" to start!
 
 ## Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `PORT` | `8686` | Web UI port |
+| `PORT` | `8767` | Web UI port |
 | `DATABASE_URL` | `file:/app/config/likedfm.db` | SQLite database path |
 | `NODE_ENV` | `production` | Node environment |
 | `LASTFM_API_KEY` | - | Last.fm API Key (can be set via UI) |
@@ -124,7 +125,7 @@ services:
     container_name: likedfm
     restart: unless-stopped
     ports:
-      - "8686:8686"
+      - "8767:8767"
     volumes:
       - ./config:/app/config
       - /mnt/user/music:/music:ro  # Adjust path to your Unraid music share
@@ -282,7 +283,7 @@ npm install
 npm run dev
 ```
 
-The frontend dev server will proxy API calls to `http://localhost:8686`.
+The frontend dev server will proxy API calls to `http://localhost:8767`.
 
 ### Building Docker Image
 ```bash
