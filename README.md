@@ -112,7 +112,7 @@ http://localhost:8767
 ### Required Mounts
 
 - **`./config:/app/config`** - SQLite database and persistent settings
-- **`/mnt/user/music:/music` (read-only)** - Music library for download detection
+- **`/mnt/user/Media/music:/music` (read-only)** - Music library for download detection
 
 ### Example docker-compose.yml
 

@@ -34,7 +34,7 @@
       <Mode>rw</Mode>
     </Volume>
     <Volume>
-      <HostDir>/mnt/user/music</HostDir>
+      <HostDir>/mnt/user/Media/music</HostDir>
       <ContainerDir>/music</ContainerDir>
       <Mode>ro</Mode>
     </Volume>
@@ -85,7 +85,7 @@
     </Variable>
     <Variable>
       <Name>MUSIC_PATH</Name>
-      <Value>/mnt/user/music</Value>
+      <Value>/mnt/user/Media/music</Value>
       <Description>Host path to music library for volume mount</Description>
       <Display>always</Display>
       <Required>false</Required>

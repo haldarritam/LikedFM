@@ -34,7 +34,7 @@ services:
       - ./config:/app/config
       
       # Read-only mount to music library for download detection
-      - ${MUSIC_PATH:-/mnt/user/music}:/music:ro
+      - ${MUSIC_PATH:-/mnt/user/Media/music}:/music:ro
 
     # Logging
     logging:
