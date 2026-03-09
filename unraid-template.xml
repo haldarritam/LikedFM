@@ -13,7 +13,7 @@
   <Icon>https://www.last.fm/static/images/lastfm_avatar_social.jpg</Icon>
   <DonateURL></DonateURL>
   <Description>
-    LikedFM is a music taste sync bridge that pulls your loved and top tracks from Last.fm and automatically requests downloads through Lidarr. Similar to Jellyseerr but for music.
+    LikedFM is a music automation bridge that pulls your loved tracks, library albums, and playlists from Last.fm and automatically downloads them from YouTube using yt-dlp. Similar to Jellyseerr but for music.
   </Description>
 
   <Networking>
@@ -36,7 +36,7 @@
     <Volume>
       <HostDir>/mnt/user/Media/music</HostDir>
       <ContainerDir>/music</ContainerDir>
-      <Mode>ro</Mode>
+      <Mode>rw</Mode>
     </Volume>
   </Data>
 
@@ -63,30 +63,37 @@
       <Required>false</Required>
     </Variable>
     <Variable>
-      <Name>LIDARR_URL</Name>
-      <Value></Value>
-      <Description>Lidarr Base URL (e.g. http://lidarr:8686)</Description>
-      <Display>always</Display>
-      <Required>false</Required>
-    </Variable>
-    <Variable>
-      <Name>LIDARR_API_KEY</Name>
-      <Value></Value>
-      <Description>Your Lidarr API Key</Description>
-      <Display>always</Display>
-      <Required>false</Required>
-    </Variable>
-    <Variable>
-      <Name>MUSIC_ROOT</Name>
+      <Name>MUSIC_OUTPUT_DIR</Name>
       <Value>/music</Value>
-      <Description>Path to music library (should match Lidarr root folder)</Description>
+      <Description>Directory where downloaded music will be saved (container path)</Description>
       <Display>always</Display>
       <Required>false</Required>
     </Variable>
     <Variable>
-      <Name>MUSIC_PATH</Name>
-      <Value>/mnt/user/Media/music</Value>
-      <Description>Host path to music library for volume mount</Description>
+      <Name>AUDIO_FORMAT</Name>
+      <Value>mp3</Value>
+      <Description>Audio format for downloads: mp3 | flac | opus | m4a</Description>
+      <Display>always</Display>
+      <Required>false</Required>
+    </Variable>
+    <Variable>
+      <Name>AUDIO_QUALITY</Name>
+      <Value>320k</Value>
+      <Description>Audio quality: 128k | 192k | 256k | 320k</Description>
+      <Display>always</Display>
+      <Required>false</Required>
+    </Variable>
+    <Variable>
+      <Name>MAX_CONCURRENT_DOWNLOADS</Name>
+      <Value>2</Value>
+      <Description>How many tracks to download simultaneously (1-5)</Description>
+      <Display>always</Display>
+      <Required>false</Required>
+    </Variable>
+    <Variable>
+      <Name>SEARCH_PREFERENCE</Name>
+      <Value>auto</Value>
+      <Description>YouTube search mode: auto | official_audio | lyrics</Description>
       <Display>always</Display>
       <Required>false</Required>
     </Variable>
@@ -94,6 +101,34 @@
       <Name>SYNC_INTERVAL</Name>
       <Value>360</Value>
       <Description>Sync interval in minutes (default: 360 = 6 hours)</Description>
+      <Display>always</Display>
+      <Required>false</Required>
+    </Variable>
+    <Variable>
+      <Name>SYNC_LOVED</Name>
+      <Value>true</Value>
+      <Description>Sync loved tracks: true | false</Description>
+      <Display>always</Display>
+      <Required>false</Required>
+    </Variable>
+    <Variable>
+      <Name>SYNC_ALBUMS</Name>
+      <Value>true</Value>
+      <Description>Sync tracks from your Last.fm library albums: true | false</Description>
+      <Display>always</Display>
+      <Required>false</Required>
+    </Variable>
+    <Variable>
+      <Name>SYNC_PLAYLISTS</Name>
+      <Value>true</Value>
+      <Description>Sync tracks from your Last.fm playlists: true | false</Description>
+      <Display>always</Display>
+      <Required>false</Required>
+    </Variable>
+    <Variable>
+      <Name>MUSIC_PATH</Name>
+      <Value>/mnt/user/Media/music</Value>
+      <Description>Host path to music library for volume mount</Description>
       <Display>always</Display>
       <Required>false</Required>
     </Variable>
@@ -110,12 +145,17 @@
   <Config Name="Last.fm API Key" Target="LASTFM_API_KEY" Default="" Mode="" Description="API Key from Last.fm" Type="Variable" Display="always" Required="false" Mask="true" />
   <Config Name="Last.fm Secret" Target="LASTFM_SECRET" Default="" Mode="" Description="API Secret from Last.fm" Type="Variable" Display="always" Required="false" Mask="true" />
   <Config Name="Last.fm Username" Target="LASTFM_USERNAME" Default="" Mode="" Description="Your Last.fm Username" Type="Variable" Display="always" Required="false" Mask="false" />
-  <Config Name="Lidarr URL" Target="LIDARR_URL" Default="" Mode="" Description="Lidarr Base URL" Type="Variable" Display="always" Required="false" Mask="false" />
-  <Config Name="Lidarr API Key" Target="LIDARR_API_KEY" Default="" Mode="" Description="Lidarr API Key" Type="Variable" Display="always" Required="false" Mask="true" />
-  <Config Name="Music Root" Target="MUSIC_ROOT" Default="/music" Mode="" Description="Container path to music library" Type="Variable" Display="always" Required="false" Mask="false" />
-  <Config Name="Host Music Path" Target="MUSIC_PATH" Default="/mnt/user/music" Mode="" Description="Host path to music library" Type="Variable" Display="always" Required="false" Mask="false" />
+  <Config Name="Music Output Directory" Target="MUSIC_OUTPUT_DIR" Default="/music" Mode="" Description="Container path where music is downloaded" Type="Variable" Display="always" Required="false" Mask="false" />
+  <Config Name="Audio Format" Target="AUDIO_FORMAT" Default="mp3" Mode="" Description="Download format: mp3 | flac | opus | m4a" Type="Variable" Display="always" Required="false" Mask="false" />
+  <Config Name="Audio Quality" Target="AUDIO_QUALITY" Default="320k" Mode="" Description="Audio bitrate: 128k | 192k | 256k | 320k" Type="Variable" Display="always" Required="false" Mask="false" />
+  <Config Name="Max Concurrent Downloads" Target="MAX_CONCURRENT_DOWNLOADS" Default="2" Mode="" Description="Parallel downloads (1-5)" Type="Variable" Display="always" Required="false" Mask="false" />
+  <Config Name="Search Preference" Target="SEARCH_PREFERENCE" Default="auto" Mode="" Description="YouTube search mode: auto | official_audio | lyrics" Type="Variable" Display="always" Required="false" Mask="false" />
   <Config Name="Sync Interval (minutes)" Target="SYNC_INTERVAL" Default="360" Mode="" Description="How often to sync (in minutes)" Type="Variable" Display="always" Required="false" Mask="false" />
-  <Config Name="Port" Target="PORT" Default="8686" Mode="" Description="Web UI port" Type="Variable" Display="always" Required="false" Mask="false" />
+  <Config Name="Sync Loved Tracks" Target="SYNC_LOVED" Default="true" Mode="" Description="Enable loved tracks syncing" Type="Variable" Display="always" Required="false" Mask="false" />
+  <Config Name="Sync Albums" Target="SYNC_ALBUMS" Default="true" Mode="" Description="Enable album library syncing" Type="Variable" Display="always" Required="false" Mask="false" />
+  <Config Name="Sync Playlists" Target="SYNC_PLAYLISTS" Default="true" Mode="" Description="Enable playlist syncing" Type="Variable" Display="always" Required="false" Mask="false" />
+  <Config Name="Host Music Path" Target="MUSIC_PATH" Default="/mnt/user/music" Mode="" Description="Host path to music library" Type="Variable" Display="always" Required="false" Mask="false" />
+  <Config Name="Port" Target="PORT" Default="8767" Mode="" Description="Web UI port" Type="Variable" Display="always" Required="false" Mask="false" />
   <Config Name="Config Path" Target="/app/config" Default="/mnt/user/appdata/likedfm" Mode="rw" Description="Appdata Path" Type="Path" Display="always" Required="true" Mask="false" />
-  <Config Name="Music Path" Target="/music" Default="/mnt/user/music" Mode="ro" Description="Music Library Path (read-only)" Type="Path" Display="always" Required="true" Mask="false" />
+  <Config Name="Music Path" Target="/music" Default="/mnt/user/music" Mode="rw" Description="Music Library Path (read-write for downloads)" Type="Path" Display="always" Required="true" Mask="false" />
 </Container>

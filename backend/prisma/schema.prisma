@@ -11,45 +11,65 @@ datasource db {
 }
 
 model Track {
-  id               Int       @id @default(autoincrement())
-  artist           String
-  title            String
-  lastfm_url       String?
-  album_art_url    String?
-  play_count       Int       @default(0)
-  loved            Boolean   @default(false)
-  status           String    @default("pending") // pending | requested | downloaded | ignored
-  lidarr_artist_id Int?
-  lidarr_album_id  Int?
-  lidarr_track_id  Int?
-  requested_at     DateTime?
-  downloaded_at    DateTime?
-  created_at       DateTime  @default(now())
-  updated_at       DateTime  @updatedAt
+  id                Int       @id @default(autoincrement())
+  artist            String
+  title             String
+  album             String?
+  lastfm_url        String?
+  album_art_url     String?
+  status            String    @default("pending") // pending | downloading | downloaded | failed | ignored
+  youtube_url       String?
+  youtube_video_id  String?
+  file_path         String?
+  download_error    String?
+  retry_count       Int       @default(0) // Number of retry attempts
+  source            String?   // "loved" | "album" | "playlist"
+  album_name        String?   // populated when source is "album"
+  playlist_name     String?   // populated when source is "playlist"
+  requested_at      DateTime?
+  downloaded_at     DateTime?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
 
   @@unique([artist, title])
 }
 
 model SyncLog {
-  id           Int      @id @default(autoincrement())
-  synced_at    DateTime @default(now())
-  tracks_found Int
-  tracks_added Int
-  source       String // "loved" | "top" | "both"
+  id               Int      @id @default(autoincrement())
+  synced_at        DateTime @default(now())
+  tracks_found     Int      @default(0)
+  tracks_added     Int      @default(0)
+  tracks_downloaded Int     @default(0)
+  tracks_failed    Int      @default(0)
+  loved_count      Int      @default(0)
+  album_count      Int      @default(0)
+  playlist_count   Int      @default(0)
 }
 
 model Settings {
-  id               Int     @id @default(1)
-  lastfm_api_key   String?
-  lastfm_secret    String?
-  lastfm_username  String?
-  lidarr_url       String?
-  lidarr_api_key   String?
-  music_root       String  @default("/music")
-  sync_interval    Int     @default(360) // minutes
-  min_play_count   Int     @default(1)
-  sync_loved       Boolean @default(true)
-  sync_top         Boolean @default(true)
-  top_period       String  @default("1month") // 7day | 1month | 3month | 6month | 12month | overall
-  updated_at       DateTime @updatedAt
+  id                          Int     @id @default(1)
+  lastfm_api_key              String?
+  lastfm_secret               String?
+  lastfm_username             String?
+  sync_interval               Int     @default(360) // minutes
+  sync_loved                  Boolean @default(true)
+  music_output_dir            String  @default("/music")
+  audio_format                String  @default("mp3")
+  audio_quality               String  @default("320k")
+  max_concurrent_downloads    Int     @default(2)
+  search_preference           String  @default("auto")
+  sync_albums                 Boolean @default(true)
+  sync_playlists              Boolean @default(true)
+  scan_interval               Int     @default(10)
+  max_retries                 Int     @default(3) // Max retry attempts for failed downloads
+  updated_at                  DateTime @updatedAt
+}
+
+model AlbumBookmark {
+  id        Int      @id @default(autoincrement())
+  artist    String
+  album     String
+  added_at  DateTime @default(now())
+
+  @@unique([artist, album])
 }

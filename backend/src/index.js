@@ -19,6 +19,8 @@ const syncRouter = require('./routes/sync');
 const settingsRouter = require('./routes/settings');
 const statsRouter = require('./routes/stats');
 const eventsRouter = require('./routes/events');
+const bookmarksRouter = require('./routes/bookmarks');
+const { startFileScanner } = require('./scheduler');
 
 // Set sync service for the sync route
 const { setSyncService } = require('./routes/sync');
@@ -34,6 +36,7 @@ app.use('/api/sync', syncRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/stats', statsRouter);
 app.use('/api/events', eventsRouter);
+app.use('/api/bookmarks', bookmarksRouter);
 
 /**
  * GET /health
@@ -48,7 +51,7 @@ app.get('/health', (req, res) => {
 });
 
 // Serve React frontend as static files
-const frontendPath = path.join(__dirname, '../../frontend/dist');
+const frontendPath = '/app/frontend/dist';
 app.use(express.static(frontendPath));
 
 // Fallback to index.html for React Router
@@ -59,6 +62,16 @@ app.get('*', (req, res) => {
 // Initialize database and start scheduler
 async function startApp() {
   try {
+    // Run Prisma migrations
+    console.log('Running Prisma migrations...');
+    const { execSync } = require('child_process');
+    try {
+      execSync('npx prisma db push --skip-generate', { stdio: 'inherit' });
+      console.log('Prisma migrations completed');
+    } catch (error) {
+      console.log('Prisma migration already up to date or no changes needed');
+    }
+
     // Create default settings if they don't exist
     const existingSettings = await prisma.settings.findUnique({
       where: { id: 1 },
@@ -74,8 +87,11 @@ async function startApp() {
     // Start scheduler
     await scheduler.start();
 
+    // Start file scanner
+    await startFileScanner();
+
     // Start server
-    const PORT = process.env.PORT || 8686;
+    const PORT = process.env.PORT || 8767;
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`🎵 LikedFM server running on http://0.0.0.0:${PORT}`);
       console.log('📊 Dashboard: http://localhost:' + PORT);

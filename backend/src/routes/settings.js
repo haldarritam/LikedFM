@@ -1,5 +1,8 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
+const LastFMService = require('../services/lastfm');
+const YTDLPService = require('../services/ytdlp');
+const { startFileScanner } = require('../scheduler');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -26,7 +29,6 @@ router.get('/', async (req, res) => {
       ...settings,
       lastfm_api_key: settings.lastfm_api_key ? '***' : null,
       lastfm_secret: settings.lastfm_secret ? '***' : null,
-      lidarr_api_key: settings.lidarr_api_key ? '***' : null,
     };
 
     res.json(maskedSettings);
@@ -39,19 +41,6 @@ router.get('/', async (req, res) => {
 /**
  * POST /api/settings
  * Save settings
- * Body: {
- *   lastfm_api_key?: string,
- *   lastfm_secret?: string,
- *   lastfm_username?: string,
- *   lidarr_url?: string,
- *   lidarr_api_key?: string,
- *   music_root?: string,
- *   sync_interval?: number (in minutes),
- *   min_play_count?: number,
- *   sync_loved?: boolean,
- *   sync_top?: boolean,
- *   top_period?: string
- * }
  */
 router.post('/', async (req, res) => {
   try {
@@ -59,30 +48,59 @@ router.post('/', async (req, res) => {
       lastfm_api_key,
       lastfm_secret,
       lastfm_username,
-      lidarr_url,
-      lidarr_api_key,
-      music_root,
+      music_output_dir,
+      audio_format,
+      audio_quality,
+      max_concurrent_downloads,
+      search_preference,
       sync_interval,
-      min_play_count,
       sync_loved,
-      sync_top,
-      top_period,
+      sync_albums,
+      sync_playlists,
+      scan_interval,
+      max_retries,
     } = req.body;
 
     const updateData = {};
 
-    // Only update fields that are provided (not null/undefined)
-    if (lastfm_api_key !== undefined) updateData.lastfm_api_key = lastfm_api_key;
-    if (lastfm_secret !== undefined) updateData.lastfm_secret = lastfm_secret;
-    if (lastfm_username !== undefined) updateData.lastfm_username = lastfm_username;
-    if (lidarr_url !== undefined) updateData.lidarr_url = lidarr_url;
-    if (lidarr_api_key !== undefined) updateData.lidarr_api_key = lidarr_api_key;
-    if (music_root !== undefined) updateData.music_root = music_root;
-    if (sync_interval !== undefined) updateData.sync_interval = Math.max(1, parseInt(sync_interval));
-    if (min_play_count !== undefined) updateData.min_play_count = Math.max(0, parseInt(min_play_count));
-    if (sync_loved !== undefined) updateData.sync_loved = Boolean(sync_loved);
-    if (sync_top !== undefined) updateData.sync_top = Boolean(sync_top);
-    if (top_period !== undefined) updateData.top_period = top_period;
+    // Last.fm settings
+    if (lastfm_api_key !== undefined)
+      updateData.lastfm_api_key = lastfm_api_key;
+    if (lastfm_secret !== undefined)
+      updateData.lastfm_secret = lastfm_secret;
+    if (lastfm_username !== undefined)
+      updateData.lastfm_username = lastfm_username;
+
+    // Download settings
+    if (music_output_dir !== undefined)
+      updateData.music_output_dir = music_output_dir;
+    if (audio_format !== undefined)
+      updateData.audio_format = audio_format;
+    if (audio_quality !== undefined)
+      updateData.audio_quality = audio_quality;
+    if (max_concurrent_downloads !== undefined)
+      updateData.max_concurrent_downloads = Math.max(
+        1,
+        parseInt(max_concurrent_downloads)
+      );
+    if (search_preference !== undefined)
+      updateData.search_preference = search_preference;
+
+    // Sync settings
+    if (sync_interval !== undefined)
+      updateData.sync_interval = Math.max(1, parseInt(sync_interval));
+    if (sync_loved !== undefined)
+      updateData.sync_loved = Boolean(sync_loved);
+    if (sync_albums !== undefined)
+      updateData.sync_albums = Boolean(sync_albums);
+    if (sync_playlists !== undefined)
+      updateData.sync_playlists = Boolean(sync_playlists);
+
+    // File scanner settings
+    if (scan_interval !== undefined)
+      updateData.scan_interval = Math.max(1, parseInt(scan_interval) || 10);
+    if (max_retries !== undefined)
+      updateData.max_retries = Math.max(0, parseInt(max_retries) || 3);
 
     let settings = await prisma.settings.findUnique({
       where: { id: 1 },
@@ -99,12 +117,14 @@ router.post('/', async (req, res) => {
       });
     }
 
+    // Restart file scanner if interval changed
+    await startFileScanner();
+
     // Mask sensitive keys in response
     const maskedSettings = {
       ...settings,
       lastfm_api_key: settings.lastfm_api_key ? '***' : null,
       lastfm_secret: settings.lastfm_secret ? '***' : null,
-      lidarr_api_key: settings.lidarr_api_key ? '***' : null,
     };
 
     res.json(maskedSettings);
@@ -115,39 +135,50 @@ router.post('/', async (req, res) => {
 });
 
 /**
- * POST /api/settings/test
- * Test Last.fm and Lidarr connections
+ * POST /api/settings/test-lastfm
+ * Test Last.fm connection
  */
-router.post('/test', async (req, res) => {
+router.post('/test-lastfm', async (req, res) => {
   try {
-    const { testType } = req.body; // 'lastfm' or 'lidarr'
-
     const settings = await prisma.settings.findUnique({
       where: { id: 1 },
     });
 
-    const results = {};
-
-    if (testType === 'lastfm' || !testType) {
-      const LastFMService = require('../services/lastfm');
-      const lastfm = new LastFMService(
-        settings.lastfm_api_key,
-        settings.lastfm_secret,
-        settings.lastfm_username
-      );
-      results.lastfm = await lastfm.testConnection();
+    if (!settings?.lastfm_api_key || !settings?.lastfm_secret || !settings?.lastfm_username) {
+      return res.json({
+        success: false,
+        error: 'Last.fm credentials not configured',
+      });
     }
 
-    if (testType === 'lidarr' || !testType) {
-      const LidarrService = require('../services/lidarr');
-      const lidarr = new LidarrService(settings.lidarr_url, settings.lidarr_api_key);
-      results.lidarr = await lidarr.testConnection();
-    }
+    const lastfm = new LastFMService(
+      settings.lastfm_api_key,
+      settings.lastfm_secret,
+      settings.lastfm_username
+    );
 
-    res.json(results);
+    const result = await lastfm.testConnection();
+    res.json(result);
   } catch (error) {
-    console.error('Error testing connections:', error);
-    res.status(500).json({ error: 'Failed to test connections' });
+    console.error('Error testing Last.fm:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * POST /api/settings/test-ytdlp
+ * Test yt-dlp binary and return version
+ */
+router.post('/test-ytdlp', async (req, res) => {
+  try {
+    const version = await YTDLPService.checkYtDlp();
+    res.json({ success: true, version });
+  } catch (error) {
+    console.error('Error testing yt-dlp:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+    });
   }
 });
 

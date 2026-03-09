@@ -6,33 +6,46 @@ const prisma = new PrismaClient();
 
 /**
  * GET /api/stats
- * Return counts of tracks by status
+ * Return counts of tracks by status and source
  */
 router.get('/', async (req, res) => {
   try {
     const [
       totalPending,
-      totalRequested,
+      totalDownloading,
       totalDownloaded,
+      totalFailed,
       totalIgnored,
       totalTracks,
       totalLoved,
+      totalAlbum,
+      totalPlaylist,
     ] = await Promise.all([
       prisma.track.count({ where: { status: 'pending' } }),
-      prisma.track.count({ where: { status: 'requested' } }),
+      prisma.track.count({ where: { status: 'downloading' } }),
       prisma.track.count({ where: { status: 'downloaded' } }),
+      prisma.track.count({ where: { status: 'failed' } }),
       prisma.track.count({ where: { status: 'ignored' } }),
       prisma.track.count(),
-      prisma.track.count({ where: { loved: true } }),
+      prisma.track.count({ where: { source: 'loved' } }),
+      prisma.track.count({ where: { source: 'album' } }),
+      prisma.track.count({ where: { source: 'playlist' } }),
     ]);
 
     res.json({
-      pending: totalPending,
-      requested: totalRequested,
-      downloaded: totalDownloaded,
-      ignored: totalIgnored,
+      status: {
+        pending: totalPending,
+        downloading: totalDownloading,
+        downloaded: totalDownloaded,
+        failed: totalFailed,
+        ignored: totalIgnored,
+      },
+      source: {
+        loved: totalLoved,
+        album: totalAlbum,
+        playlist: totalPlaylist,
+      },
       total: totalTracks,
-      loved: totalLoved,
     });
   } catch (error) {
     console.error('Error fetching stats:', error);

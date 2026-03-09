@@ -1,7 +1,7 @@
 {
   "name": "likedfm-backend",
   "version": "1.0.0",
-  "description": "LikedFM - Music taste sync bridge (Last.fm + Lidarr)",
+  "description": "LikedFM - Music taste automation (Last.fm + YouTube Downloads)",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
@@ -13,7 +13,8 @@
   },
   "keywords": [
     "lastfm",
-    "lidarr",
+    "youtube",
+    "yt-dlp",
     "music",
     "automation"
   ],

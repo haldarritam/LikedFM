@@ -8,28 +8,39 @@ const prisma = new PrismaClient();
  * GET /api/tracks
  * List all tracks with optional filtering and sorting
  * Query params:
- *   - status: filter by status (pending|requested|downloaded|ignored)
- *   - loved: filter by loved (true|false)
+ *   - status: filter by status (pending|downloading|downloaded|failed|ignored)
+ *   - source: filter by source (loved|album|playlist)
  *   - sort: sort field (created_at|artist|title)
  *   - order: sort order (asc|desc)
- *   - limit: max results (default: 500)
- *   - offset: pagination offset (default: 0)
+ *   - page: page number (default: 1)
+ *   - limit: max results per page (default: 50)
  */
 router.get('/', async (req, res) => {
   try {
-    const { status, loved, sort = 'created_at', order = 'desc', limit = 500, offset = 0 } = req.query;
+    const {
+      status,
+      source,
+      sort = 'created_at',
+      order = 'desc',
+      page = 1,
+      limit = 50,
+    } = req.query;
 
     const whereClause = {};
     if (status) whereClause.status = status;
-    if (loved !== undefined) whereClause.loved = loved === 'true';
+    if (source) whereClause.source = source;
+
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(parseInt(limit) || 50, 500);
+    const skip = (pageNum - 1) * limitNum;
 
     const tracks = await prisma.track.findMany({
       where: whereClause,
       orderBy: {
         [sort]: order.toLowerCase() === 'asc' ? 'asc' : 'desc',
       },
-      take: Math.min(parseInt(limit) || 500, 1000),
-      skip: parseInt(offset) || 0,
+      take: limitNum,
+      skip,
     });
 
     const total = await prisma.track.count({ where: whereClause });
@@ -37,8 +48,9 @@ router.get('/', async (req, res) => {
     res.json({
       data: tracks,
       total,
-      limit: Math.min(parseInt(limit) || 500, 1000),
-      offset: parseInt(offset) || 0,
+      page: pageNum,
+      limit: limitNum,
+      pages: Math.ceil(total / limitNum),
     });
   } catch (error) {
     console.error('Error fetching tracks:', error);

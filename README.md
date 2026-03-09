@@ -1,38 +1,46 @@
-# 🎵 LikedFM - Music Taste Sync for Last.fm + Lidarr
+# 🎵 LikedFM - Music Taste Sync for Last.fm + YouTube
 
-LikedFM is a self-hosted music automation bridge that syncs your **loved** and **top tracks** from **Last.fm** and automatically requests individual song downloads through **Lidarr**. Think of it as **Jellyseerr for music**.
+LikedFM is a self-hosted music automation bridge that syncs your **loved tracks**, **library albums**, and **playlists** from **Last.fm** and automatically downloads them from **YouTube** using **yt-dlp**. Think of it as **Jellyseerr for music**.
 
 ## Features
 
 ✅ **Last.fm Integration**
 - Sync loved tracks from your Last.fm profile
-- Sync top tracks (7-day, 1-month, 3-month, 6-month, 12-month, or all-time)
-- Configurable minimum play count threshold
-- Automatic deduplication
+- Sync all albums from your Last.fm library
+- Sync playlists from your Last.fm account
+- Automatic deduplication with priority sourcing
+- Full pagination support for all endpoints
 
-✅ **Lidarr Integration**
-- Automatic artist discovery and addition
-- Smart track/album search and request
-- Download completion detection via file system polling
-- Lidarr queue/history tracking
+✅ **YouTube Download Pipeline**
+- Smart YouTube search with intelligent scoring system
+- Support for official audio, lyrics videos, or auto-detection
+- Concurrent downloads with configurable parallelism
+- High-quality audio extraction (up to 320kbps MP3 or other formats)
+- Real-time download progress tracking via SSE
+- Automatic retry on failure with exponential backoff
 
 ✅ **Web Dashboard**
-- Real-time track status tracking (Pending → Requested → Downloaded)
+- Real-time track status tracking (Pending → Downloading → Downloaded)
 - Live activity log with SSE updates
-- Statistics dashboard (total synced, downloaded, pending, ignored)
-- Manual sync trigger
+- Statistics dashboard (total synced, downloading, downloaded, failed, ignored)
+- Manual sync trigger and per-track download control
+- Retry failed downloads in bulk or individually
 - Per-track ignore/un-ignore controls
 - Album art thumbnails from Last.fm
+- Source badges showing origin (Loved, Album, Playlist)
+- Download progress bars with speed and ETA
 
 ✅ **Settings UI**
 - Fully configurable via web interface
-- Test Last.fm & Lidarr connections
-- Adjust sync intervals and play count thresholds
+- Test Last.fm & yt-dlp binary availability
+- Adjust sync intervals, audio format, and quality
+- Enable/disable sync sources (loved, albums, playlists)
 - No need to edit config files
 
 ✅ **Docker-Ready**
 - Multi-stage build (optimized image size)
 - Unraid Community Applications template included
+- Pre-installed yt-dlp and ffmpeg
 - Health check endpoint
 - Non-root user for security
 - Volume mounts for persistence and music library access
@@ -42,6 +50,7 @@ LikedFM is a self-hosted music automation bridge that syncs your **loved** and *
 - **Backend**: Node.js + Express + Prisma + SQLite
 - **Frontend**: React 18 + Vite + React Router + Tailwind CSS
 - **Scheduler**: node-cron for automated sync intervals
+- **Download Engine**: yt-dlp via child_process.spawn (streaming progress)
 - **Database**: SQLite (persisted in `/config` volume)
 
 ## Quick Start
@@ -70,7 +79,7 @@ docker compose up -d
 http://localhost:8767
 ```
 
-4. Configure Last.fm and Lidarr credentials in the Settings page.
+4. Configure Last.fm credentials in the Settings page.
 
 5. Click "Sync Now" to start!
 
@@ -84,11 +93,22 @@ http://localhost:8767
 | `LASTFM_API_KEY` | - | Last.fm API Key (can be set via UI) |
 | `LASTFM_SECRET` | - | Last.fm API Secret (can be set via UI) |
 | `LASTFM_USERNAME` | - | Last.fm Username (can be set via UI) |
-| `LIDARR_URL` | - | Lidarr Base URL (can be set via UI) |
-| `LIDARR_API_KEY` | - | Lidarr API Key (can be set via UI) |
-| `MUSIC_ROOT` | `/music` | Container path to music library |
-| `MUSIC_PATH` | `/mnt/user/music` | Host path to music library (for docker-compose) |
+| `MUSIC_PATH` | `/mnt/user/Media/music` | **Host path** for downloaded music |
+| `MUSIC_OUTPUT_DIR` | `/music` | **Container path** for downloads (do not change) |
+| `AUDIO_FORMAT` | `mp3` | Download format: mp3, flac, opus, m4a |
+| `AUDIO_QUALITY` | `320k` | Bitrate: 128k, 192k, 256k, 320k |
+| `MAX_CONCURRENT_DOWNLOADS` | `2` | Parallel downloads (1-5) |
+| `SEARCH_PREFERENCE` | `auto` | YouTube search mode: auto, official_audio, lyrics |
 | `SYNC_INTERVAL` | `360` | Sync interval in minutes |
+| `SYNC_LOVED` | `true` | Sync loved tracks |
+| `SYNC_ALBUMS` | `true` | Sync library albums |
+| `SYNC_PLAYLISTS` | `true` | Sync playlists |
+
+### Important Notes
+
+- **MUSIC_PATH** (host machine path) is what you customize
+- **MUSIC_OUTPUT_DIR** (container path) should always be `/music`
+- Use `${MUSIC_PATH:-/mnt/user/Media/music}` in docker-compose to allow overrides
 
 ## Getting API Keys
 
@@ -100,22 +120,20 @@ http://localhost:8767
 4. You'll get your **API Key** and **Shared Secret**
 5. You'll need your **Last.fm username** (not email)
 
-### Lidarr API Key
-
-1. Open your Lidarr web UI
-2. Go to **Settings** → **General**
-3. Scroll to the bottom to find your **API Key**
-4. Your **Base URL** is typically `http://lidarr:8686` or `http://192.168.x.x:8686`
-
 ## Volume Mounts (Docker)
 
 ### Required Mounts
 
 - **`./config:/app/config`** - SQLite database and persistent settings
-- **`/mnt/user/Media/music:/music` (read-only)** - Music library for download detection
+- **`/path/to/your/music:/music`** - Music library for downloaded tracks (read-write)
 
-### Example docker-compose.yml
+### Configuring the Music Directory
 
+The music download path is **fully customizable** via the `MUSIC_PATH` environment variable:
+
+**Default:** `/mnt/user/Media/music` → `/music` (inside container)
+
+**Docker Compose Example:**
 ```yaml
 version: '3.8'
 
@@ -128,11 +146,35 @@ services:
       - "8767:8767"
     volumes:
       - ./config:/app/config
-      - /mnt/user/music:/music:ro  # Adjust path to your Unraid music share
+      - ${MUSIC_PATH:-/mnt/user/Media/music}:/music
     environment:
       SYNC_INTERVAL: 360
-      MUSIC_ROOT: /music
+      AUDIO_FORMAT: mp3
+      AUDIO_QUALITY: 320k
 ```
+
+**Set Custom Path (Linux/Mac):**
+```bash
+export MUSIC_PATH=/home/user/Music
+docker-compose up -d
+```
+
+**Set Custom Path (Windows PowerShell):**
+```powershell
+$env:MUSIC_PATH="C:\Users\YourName\Music"
+docker-compose up -d
+```
+
+**Set Custom Path (Unraid):**
+Edit the container settings and set:
+- **MUSIC_PATH** = `/mnt/user/MyShare/Music` (or your preferred location)
+
+### Volume Permission Notes
+
+- Directory must have read-write permissions
+- Container runs as user `likedfm` (UID 1001)
+- Ensure the host directory exists: `mkdir -p /mnt/user/Media/music`
+- Set proper permissions: `chmod 755 /mnt/user/Media/music`
 
 ## Installation on Unraid
 
@@ -156,21 +198,24 @@ services:
 ## API Endpoints
 
 ### Tracks
-- `GET /api/tracks` - List all tracks with filters
+- `GET /api/tracks` - List tracks with filters (status, source, sort, page)
 - `PATCH /api/tracks/:id/ignore` - Mark track as ignored
 - `PATCH /api/tracks/:id/unignore` - Revert ignored track
+- `POST /api/sync/tracks/:id/download` - Manually download a track
 
 ### Sync
 - `POST /api/sync` - Trigger manual sync now
 - `GET /api/sync/status` - Get last sync time and next scheduled time
+- `POST /api/sync/retry-failed` - Retry all failed downloads
 
 ### Settings
 - `GET /api/settings` - Get current settings (masked)
 - `POST /api/settings` - Save settings
-- `POST /api/settings/test` - Test Last.fm & Lidarr connections
+- `POST /api/settings/test-lastfm` - Test Last.fm connection
+- `POST /api/settings/test-ytdlp` - Check yt-dlp binary
 
 ### Stats
-- `GET /api/stats` - Get track counts by status
+- `GET /api/stats` - Get track counts by status and source
 
 ### Events
 - `GET /api/events` - Server-Sent Events stream for live updates
@@ -182,89 +227,158 @@ services:
 
 ### Tracks Table
 ```
-id              Int (PK)
-artist          String
-title           String
-lastfm_url      String
-album_art_url   String
-play_count      Int
-loved            Boolean
-status          String (pending|requested|downloaded|ignored)
-lidarr_artist_id Int
-lidarr_album_id Int
-lidarr_track_id Int
-requested_at    DateTime
-downloaded_at   DateTime
-created_at      DateTime
-updated_at      DateTime
+id                Int (PK)
+artist            String
+title             String
+lastfm_url        String
+album_art_url     String
+status            String (pending|downloading|downloaded|failed|ignored)
+youtube_url       String
+youtube_video_id  String
+file_path         String
+download_error    String
+source            String (loved|album|playlist)
+album_name        String
+playlist_name     String
+requested_at      DateTime
+downloaded_at     DateTime
+created_at        DateTime
+updated_at        DateTime
 ```
 
 ### Sync Log Table
 ```
-id              Int (PK)
-synced_at       DateTime
-tracks_found    Int
-tracks_added    Int
-source          String (loved|top|both)
+id                Int (PK)
+synced_at         DateTime
+tracks_found      Int
+tracks_added      Int
+tracks_downloaded Int
+tracks_failed     Int
+loved_count       Int
+album_count       Int
+playlist_count    Int
 ```
 
 ### Settings Table
 ```
-id               Int (PK)
-lastfm_api_key   String
-lastfm_secret    String
-lastfm_username  String
-lidarr_url       String
-lidarr_api_key   String
-music_root       String
-sync_interval    Int (minutes)
-min_play_count   Int
-sync_loved       Boolean
-sync_top         Boolean
-top_period       String
+id                          Int (PK)
+lastfm_api_key              String
+lastfm_secret               String
+lastfm_username             String
+sync_interval               Int (minutes)
+sync_loved                  Boolean
+music_output_dir            String
+audio_format                String
+audio_quality               String
+max_concurrent_downloads    Int
+search_preference           String
+sync_albums                 Boolean
+sync_playlists              Boolean
+updated_at                  DateTime
 ```
 
 ## Sync Flow
 
-1. **Fetch Last.fm tracks** - Pull loved/top tracks based on settings
-2. **Deduplicate** - Remove duplicates and store in database
-3. **Request to Lidarr** - For each pending track:
-   - Search for artist in Lidarr
-   - Add artist if not present (monitored=false)
-   - Search for specific track/album
-   - Request the album/track
-4. **Detect Downloads** - Scan music library and Lidarr history for completions
-5. **Update Status** - Mark tracks as "downloaded" when file appears
-6. **Broadcast Events** - Send SSE updates to connected clients
+1. **Fetch Last.fm Data**:
+   - Pull all loved tracks (with pagination)
+   - Pull all library albums (with pagination)
+   - For each album, fetch all tracks
+   - Pull all playlists (with pagination)
+   - For each playlist, fetch all tracks
+
+2. **Deduplicate**: Remove duplicates by (artist, title), keeping "loved" as priority source
+
+3. **Insert into Database**: Add new tracks with status "pending" and source metadata
+
+4. **Process Downloads** (up to max_concurrent at a time):
+   - Search YouTube with intelligent scoring
+   - Save YouTube URL and video ID to DB
+   - Update status to "downloading"
+   - Stream download with real-time progress events
+   - On success: save file_path, mark "downloaded"
+   - On failure: save error, mark "failed", enable retry
+
+5. **Broadcast Events**: Send SSE updates to dashboard (start, progress, completed, failed)
+
+6. **Log Results**: Record sync summary with counts by source and status
+
+## Download Quality
+
+The app uses **yt-dlp** to extract audio from YouTube videos with these options:
+
+- **Format**: MP3 (default), FLAC, Opus, or M4A
+- **Quality**: Up to 320kbps (configurable)
+- **Metadata**: Embeds thumbnail and track metadata
+- **Organization**: `Artist/Title.ext` directory structure
+- **Retry**: Automatic retry up to 2x on failure
+
+### YouTube Search Scoring
+
+Results are scored based on:
+- Title contains both artist AND track title (+3)
+- Channel matches artist name (+2)
+- "Official Audio" or official channel (+2)
+- Duration 2-8 minutes (+1)
+- **Disqualified**: Duration < 60s or > 10min
 
 ## Troubleshooting
 
 ### Sync not running
 - Check Settings page to ensure all fields are filled
-- Click "Test Connections" to verify Last.fm & Lidarr connectivity
+- Click "Test Last.fm" to verify API connectivity
 - Check application logs: `docker logs likedfm`
 
-### Tracks not appearing in Lidarr
-- Verify Lidarr URL and API key are correct
-- Ensure the artist exists in Last.fm
-- Check if Lidarr already has the artist added (monitored=false)
+### No YouTube results found
+- Try different search preferences (auto, official_audio, lyrics)
+- Check yt-dlp is working: `docker exec likedfm yt-dlp --version`
+- Some tracks may not have good YouTube matches
 
-### Downloads not detected
-- Verify music library path is correct
-- Ensure music library volume is mounted to `/music` in container
-- Check file permissions
-- Manually scan Lidarr to refresh library
+### Downloads not appearing
+- Verify music output directory has write permissions
+- Check disk space available
+- Review error message in track card
+- Try retry button for failed tracks
 
 ### Database locked
 - Stop the container: `docker-compose down`
 - Remove database: `rm config/likedfm.db`
 - Restart container: `docker-compose up -d`
 
+## Utility Scripts
+
+Located in `backend/scripts/` directory. These are helpful tools for database maintenance and debugging.
+
+### Clear Permission Errors
+
+If tracks show false "Permission denied" errors despite being downloaded successfully:
+
+```bash
+docker cp /mnt/user/data/LikedFM/backend/scripts/cleanup-errors.js likedfm:/app/cleanup-errors.js
+docker exec likedfm node /app/cleanup-errors.js
+```
+
+This script will:
+- Find all tracks with "Permission denied" errors
+- Clear the error messages
+- Reset tracks to "pending" status for retry
+
+### Check Track in Database
+
+Query the database for a specific track (e.g., find Polyphia tracks):
+
+```bash
+docker cp /mnt/user/data/LikedFM/backend/scripts/check-track.js likedfm:/app/check-track.js
+docker exec likedfm node /app/check-track.js
+```
+
+Edit `check-track.js` to search for different tracks by modifying the query.
+
 ## Development
 
 ### Prerequisites
 - Node.js 18+
 - Docker & Docker Compose
+- yt-dlp (for local testing)
 
 ### Running Locally
 
@@ -302,9 +416,8 @@ likedfm/
 │   │   ├── index.js (Express app)
 │   │   ├── scheduler.js (cron sync)
 │   │   ├── services/
-│   │   │   ├── lastfm.js
-│   │   │   ├── lidarr.js
-│   │   │   └── scanner.js
+│   │   │   ├── lastfm.js (Last.fm API)
+│   │   │   └── ytdlp.js (YouTube download)
 │   │   └── routes/
 │   │       ├── tracks.js
 │   │       ├── sync.js
@@ -352,7 +465,8 @@ MIT
 - [ ] Batch operations (ignore all pending, etc.)
 - [ ] Export/import settings
 - [ ] Multi-user support
-- [ ] Dark/light mode toggle
+- [ ] Preferred artists/channels list
+- [ ] Quality/format presets
 
 ---
 

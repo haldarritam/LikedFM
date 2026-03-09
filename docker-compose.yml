@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   likedfm:
     build: .
@@ -20,21 +22,26 @@ services:
       LASTFM_SECRET: ${LASTFM_SECRET:-}
       LASTFM_USERNAME: ${LASTFM_USERNAME:-}
       
-      # Lidarr Settings (optional, can be set via UI)
-      LIDARR_URL: ${LIDARR_URL:-}
-      LIDARR_API_KEY: ${LIDARR_API_KEY:-}
+      # yt-dlp Download Settings
+      MUSIC_OUTPUT_DIR: ${MUSIC_OUTPUT_DIR:-/music}
+      AUDIO_FORMAT: ${AUDIO_FORMAT:-mp3}
+      AUDIO_QUALITY: ${AUDIO_QUALITY:-320k}
+      MAX_CONCURRENT_DOWNLOADS: ${MAX_CONCURRENT_DOWNLOADS:-2}
+      SEARCH_PREFERENCE: ${SEARCH_PREFERENCE:-auto}
       
       # Sync Settings
-      MUSIC_ROOT: ${MUSIC_ROOT:-/music}
       SYNC_INTERVAL: ${SYNC_INTERVAL:-360}
+      SYNC_LOVED: ${SYNC_LOVED:-true}
+      SYNC_ALBUMS: ${SYNC_ALBUMS:-true}
+      SYNC_PLAYLISTS: ${SYNC_PLAYLISTS:-true}
 
     # Volume mounts
     volumes:
       # Config directory for SQLite database and persistent settings
-      - ./config:/app/config
+      - /mnt/user/appdata/likedfm:/app/config
       
-      # Read-only mount to music library for download detection
-      - ${MUSIC_PATH:-/mnt/user/Media/music}:/music:ro
+      # Music output directory for downloaded tracks
+      - ${MUSIC_PATH:-/mnt/user/Media/music}:/music
 
     # Logging
     logging:
@@ -43,14 +50,10 @@ services:
         max-size: "10m"
         max-file: "3"
 
-    # Resource limits (optional, adjust based on your system)
-    # deploy:
-    #   resources:
-    #     limits:
-    #       cpus: '0.5'
-    #       memory: 512M
-
-networks:
-  default:
-    name: likedfm-network
-    driver: bridge
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8767/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
