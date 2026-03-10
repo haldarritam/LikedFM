@@ -372,6 +372,38 @@ class LastFMService {
       return { success: false, error: error.message };
     }
   }
+
+  async getTrackInfo(artist, title) {
+    try {
+      const response = await this.makeRequest('track.getInfo', {
+        artist,
+        track: title,
+      });
+
+      if (!response.track) return null;
+
+      const track = response.track;
+      const album = track.album || null;
+
+      let albumArtUrl = null;
+      if (album && album.image) {
+        albumArtUrl = this.getImageUrl(album.image);
+        // Reject the generic placeholder image
+        if (albumArtUrl && albumArtUrl.includes('2a96cbd8b46e442fc41c2b86b821562f')) {
+          albumArtUrl = null;
+        }
+      }
+
+      return {
+        album_name: album?.title || null,
+        album_art_url: albumArtUrl,
+      };
+    } catch (error) {
+      console.warn(`[lastfm] Could not get track info for ${artist} - ${title}:`, error.message);
+      return null;
+    }
+  }
+
 }
 
 module.exports = LastFMService;

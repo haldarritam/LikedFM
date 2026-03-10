@@ -195,10 +195,11 @@ class YTDLPService {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         return await new Promise((resolve, reject) => {
+          const safeArtist = artist.replace(/[<>:"/\\|?*]/g, "").trim()
           const outputTemplate = path.join(
             outputDir,
-            '%(artist)s',
-            '%(title)s.%(ext)s'
+            safeArtist,
+            `${title}.${format}`
           );
 
           const args = [
@@ -209,10 +210,6 @@ class YTDLPService {
             quality,
             '--embed-thumbnail',
             '--embed-metadata',
-            '--parse-metadata',
-            `${artist}:%(artist)s`,
-            '--parse-metadata',
-            `${title}:%(title)s`,
             '--output',
             outputTemplate,
             '--newline',
@@ -379,6 +376,28 @@ class YTDLPService {
     
     return null;
   }
+  static async tagFile(filePath, artist, title, album, albumArtUrl) {
+    return new Promise((resolve) => {
+      const taggerPath = path.join(__dirname, 'tagger.py')
+      const args = [taggerPath, filePath, artist || '', title || '', album || 'null', albumArtUrl || 'null']
+      console.log(`[tagger] Tagging: ${artist} - ${title}`)
+      const proc = spawn('python3', args)
+      let error = ''
+      proc.stdout.on('data', (data) => { console.log('[tagger]', data.toString().trim()) })
+      proc.stderr.on('data', (data) => { error += data.toString(); console.warn('[tagger]', data.toString().trim()) })
+      proc.on('close', (code) => {
+        if (code === 0) {
+          console.log(`[tagger] Tagged: ${filePath}`)
+          resolve({ success: true })
+        } else {
+          console.warn(`[tagger] Failed for ${filePath}: ${error}`)
+          resolve({ success: false, error })
+        }
+      })
+      proc.on('error', (err) => { resolve({ success: false, error: err.message }) })
+    })
+  }
+
 }
 
 module.exports = YTDLPService;

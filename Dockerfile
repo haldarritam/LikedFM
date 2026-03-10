@@ -14,13 +14,16 @@ RUN npm run build
 FROM node:18-alpine
 
 # Install dumb-init, libssl for Prisma, ffmpeg, python3 for yt-dlp, deno for JS runtime, and yt-dlp itself
-RUN apk add --no-cache dumb-init openssl ffmpeg python3 curl deno
+RUN apk add --no-cache dumb-init openssl ffmpeg python3 py3-pip curl deno
 
 # Install yt-dlp
 RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
     -o /usr/local/bin/yt-dlp && \
     chmod +x /usr/local/bin/yt-dlp && \
     yt-dlp --version
+
+# Install mutagen for audio metadata tagging
+RUN pip3 install mutagen --break-system-packages
 
 # Create non-root user
 RUN addgroup -g 1001 likedfm && adduser -D -u 1001 -G likedfm likedfm

@@ -135,8 +135,29 @@ class SyncScheduler {
           const loved = await lastfm.getLovedTracks();
           console.log(`Sync: Found ${loved.length} loved tracks`);
 
+          // Enrich loved tracks with album info from track.getInfo
+          const enrichedTracks = await Promise.all(
+            loved.map(async (track) => {
+              // Only fetch if album info is missing or art is placeholder
+              const needsEnrichment = !track.album_name || !track.album_art_url ||
+                track.album_art_url.includes('2a96cbd8b46e442fc41c2b86b821562f');
+
+              if (needsEnrichment) {
+                const info = await lastfm.getTrackInfo(track.artist, track.title);
+                if (info) {
+                  return {
+                    ...track,
+                    album_name: info.album_name || track.album_name || null,
+                    album_art_url: info.album_art_url || track.album_art_url || null,
+                  };
+                }
+              }
+              return track;
+            })
+          );
+
           collectedTracks.push(
-            ...loved.map((track) => ({
+            ...enrichedTracks.map((track) => ({
               ...track,
               source: 'loved',
             }))
@@ -148,79 +169,10 @@ class SyncScheduler {
         }
       }
 
-      // Step 2: Fetch albums from library
-      if (settings.sync_albums) {
-        try {
-          console.log('Sync: Fetching library albums from Last.fm');
-          const albums = await lastfm.getLibraryAlbums();
-          console.log(`Sync: Found ${albums.length} albums`);
 
-          let albumTracksAdded = 0;
-          for (const album of albums) {
-            try {
-              const albumTracks = await lastfm.getAlbumTracks(
-                album.artist,
-                album.album
-              );
-              collectedTracks.push(
-                ...albumTracks.map((track) => ({
-                  ...track,
-                  source: 'album',
-                  album_name: album.album,
-                  album_art_url: album.image,
-                }))
-              );
-              albumTracksAdded += albumTracks.length;
-            } catch (error) {
-              console.warn(
-                `Failed to fetch tracks for album ${album.artist} - ${album.album}:`,
-                error.message
-              );
-            }
-          }
+      // Step 2: Album sync disabled (library.getalbums deprecated by Last.fm)
+      // Step 3: Playlist sync disabled (user.getplaylists deprecated by Last.fm)
 
-          console.log(`Sync: Fetched tracks from ${albums.length} albums`);
-          syncStats.albumCount = albumTracksAdded;
-        } catch (error) {
-          console.error('Error fetching library albums:', error);
-        }
-      }
-
-      // Step 3: Fetch playlists and their tracks
-      if (settings.sync_playlists) {
-        try {
-          console.log('Sync: Fetching playlists from Last.fm');
-          const playlists = await lastfm.getUserPlaylists();
-          console.log(`Sync: Found ${playlists.length} playlists`);
-
-          let playlistTracksAdded = 0;
-          for (const playlist of playlists) {
-            try {
-              const playlistTracks = await lastfm.getPlaylistTracks(playlist.id);
-              collectedTracks.push(
-                ...playlistTracks.map((track) => ({
-                  ...track,
-                  source: 'playlist',
-                  playlist_name: playlist.title,
-                }))
-              );
-              playlistTracksAdded += playlistTracks.length;
-            } catch (error) {
-              console.warn(
-                `Failed to fetch tracks for playlist ${playlist.title}:`,
-                error.message
-              );
-            }
-          }
-
-          console.log(
-            `Sync: Fetched tracks from ${playlists.length} playlists`
-          );
-          syncStats.playlistCount = playlistTracksAdded;
-        } catch (error) {
-          console.error('Error fetching playlists:', error);
-        }
-      }
 
       syncStats.tracksFound = collectedTracks.length;
       console.log(
@@ -444,6 +396,17 @@ class SyncScheduler {
       );
 
       if (downloadResult.success) {
+        // Tag the file with clean Last.fm metadata
+        if (downloadResult.filePath) {
+          await YTDLPService.tagFile(
+            downloadResult.filePath,
+            track.artist,
+            track.title,
+            track.album_name || null,
+            track.album_art_url || null
+          );
+        }
+
         await prisma.track.update({
           where: { id: track.id },
           data: {
