@@ -10,7 +10,7 @@
   <Category>Music:</Category>
   <WebUI>http://[IP]:[PORT:8767]</WebUI>
   <TemplateURL>https://raw.githubusercontent.com/haldarritam/Discbox/main/unraid-template.xml</TemplateURL>
-  <Icon>https://raw.githubusercontent.com/haldarritam/Discbox/main/icon.png</Icon>
+  <Icon>https://cdn-icons-png.flaticon.com/512/3844/3844724.png</Icon>
   <Description>
     Discbox is a self-hosted music automation app that syncs your loved tracks, saved albums, and playlists from Deezer (and optionally Last.fm) and automatically downloads them from YouTube via yt-dlp. Files are saved in a Navidrome-compatible folder structure with full metadata embedded.
   </Description>
