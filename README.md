@@ -1,12 +1,12 @@
-# 🎵 LikedFM
+# 🎵 Discbox
 
-LikedFM is a self-hosted music automation app that syncs your loved tracks, saved albums, and playlists from **Deezer** (and optionally **Last.fm**) and automatically downloads them from YouTube via yt-dlp. It organizes your music library in a Navidrome-compatible folder structure and keeps everything in sync automatically.
+Discbox is a self-hosted music automation app that syncs your loved tracks, saved albums, and playlists from **Deezer** (and optionally **Last.fm**) and automatically downloads them from YouTube via yt-dlp. It organizes your music library in a Navidrome-compatible folder structure and keeps everything in sync automatically.
 
 ---
 
 ## How It Works
 
-1. LikedFM connects to your Deezer account(s) using your public profile ID
+1. Discbox connects to your Deezer account(s) using your public profile ID
 2. It fetches your loved tracks, saved albums, and playlists
 3. Each track is searched on YouTube and downloaded as high-quality audio
 4. Files are saved to your music library as `Artist / Album / TrackNum - Title.mp3`
@@ -28,8 +28,8 @@ LikedFM is a self-hosted music automation app that syncs your loved tracks, save
 
 ## Quick Start
 ```bash
-git clone https://github.com/haldarritam/LikedFM.git
-cd likedfm
+git clone https://github.com/haldarritam/Discbox.git
+cd discbox
 docker-compose up -d --build
 ```
 
@@ -116,18 +116,18 @@ Add accounts via Settings → Deezer Accounts. Multiple accounts are supported.
 ## Docker Commands
 ```bash
 # Start / rebuild
-cd /mnt/user/data/LikedFM
+cd /mnt/user/data/Discbox
 docker-compose up --build -d
 
 # View logs
-docker logs likedfm --tail 50
-docker logs likedfm -f | grep -i "error\|tagger\|deezer"
+docker logs discbox --tail 50
+docker logs discbox -f | grep -i "error\|tagger\|deezer"
 
 # Push schema changes after editing prisma/schema.prisma
-docker exec likedfm npx prisma db push --schema /app/prisma/schema.prisma
+docker exec discbox npx prisma db push --schema /app/prisma/schema.prisma
 
 # Reset all tracks to pending (re-download everything)
-docker exec likedfm node -e "
+docker exec discbox node -e "
 const { PrismaClient } = require('@prisma/client')
 const p = new PrismaClient()
 p.track.updateMany({ data: { status: 'pending', file_path: null, download_error: null, retry_count: 0 } })
@@ -135,7 +135,7 @@ p.track.updateMany({ data: { status: 'pending', file_path: null, download_error:
 "
 
 # Delete all tracks (fresh start)
-docker exec likedfm node -e "
+docker exec discbox node -e "
 const { PrismaClient } = require('@prisma/client')
 const p = new PrismaClient()
 p.track.deleteMany().then(r => { console.log('Deleted', r.count); process.exit(0) })
@@ -148,8 +148,8 @@ p.track.deleteMany().then(r => { console.log('Deleted', r.count); process.exit(0
 
 Located in `scripts/`. To run any script:
 ```bash
-docker cp scripts/<script>.js likedfm:/app/<script>.js
-docker exec likedfm node /app/<script>.js
+docker cp scripts/<script>.js discbox:/app/<script>.js
+docker exec discbox node /app/<script>.js
 ```
 
 ### `cleanup-orphaned-files.js`
@@ -162,7 +162,7 @@ Finds tracks in the database marked as `downloaded` whose file no longer exists 
 
 ## Navidrome Integration
 
-LikedFM saves files in a format Navidrome understands natively:
+Discbox saves files in a format Navidrome understands natively:
 - `Artist / Album / TrackNum - Title.mp3`
 - Full metadata embedded (title, artist, album, track number, year, BPM, album art)
 
@@ -173,7 +173,7 @@ After a sync, trigger a **Full Rescan** in Navidrome to pick up new tracks.
 ## Troubleshooting
 
 **Sync not running**
-Check logs: `docker logs likedfm | grep -i "scheduler\|sync every"`
+Check logs: `docker logs discbox | grep -i "scheduler\|sync every"`
 The sync interval is only picked up on container start — restart after changing it.
 
 **Track keeps failing**

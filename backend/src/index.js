@@ -95,7 +95,7 @@ async function startApp() {
     // Start server
     const PORT = process.env.PORT || 8767;
     app.listen(PORT, '0.0.0.0', () => {
-      console.log(`🎵 LikedFM server running on http://0.0.0.0:${PORT}`);
+      console.log(`🎵 Discbox server running on http://0.0.0.0:${PORT}`);
       console.log('📊 Dashboard: http://localhost:' + PORT);
       console.log('⚙️  Settings: http://localhost:' + PORT + '/settings');
     });

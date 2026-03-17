@@ -215,8 +215,8 @@ export default function Dashboard() {
         {/* Header */}
         <div className="mb-8 flex justify-between items-center flex-wrap gap-4">
           <div>
-            <h1 className="text-4xl font-bold">🎵 LikedFM</h1>
-            <p className="text-gray-400 mt-1">Music taste sync for Last.fm + YouTube</p>
+            <h1 className="text-4xl font-bold">🎵 Discbox</h1>
+            <p className="text-gray-400 mt-1">Music taste sync for Deezer + YouTube</p>
           </div>
           <div className="flex gap-2 flex-wrap">
             {failedCount > 0 && (

@@ -1,7 +1,7 @@
 {
-  "name": "likedfm-backend",
+  "name": "discbox-backend",
   "version": "1.0.0",
-  "description": "LikedFM - Music taste automation (Last.fm + YouTube Downloads)",
+  "description": "Discbox - Music taste automation (Last.fm + YouTube Downloads)",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",

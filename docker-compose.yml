@@ -1,10 +1,10 @@
 version: '3.8'
 
 services:
-  likedfm:
+  discbox:
     build: .
-    image: likedfm:latest
-    container_name: likedfm
+    image: discbox:latest
+    container_name: discbox
     restart: unless-stopped
 
     # Port mapping
@@ -14,7 +14,7 @@ services:
     # Environment variables
     environment:
       NODE_ENV: production
-      DATABASE_URL: file:/app/config/likedfm.db
+      DATABASE_URL: file:/app/config/discbox.db
       PORT: 8767
       
       # Last.fm Settings (optional, can be set via UI)
@@ -38,7 +38,7 @@ services:
     # Volume mounts
     volumes:
       # Config directory for SQLite database and persistent settings
-      - /mnt/user/appdata/likedfm:/app/config
+      - /mnt/user/appdata/discbox:/app/config
       
       # Music output directory for downloaded tracks
       - ${MUSIC_PATH:-/mnt/user/Media/music}:/music

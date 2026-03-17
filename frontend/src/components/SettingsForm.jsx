@@ -336,7 +336,7 @@ export default function SettingsForm({ onSave, initialSettings }) {
               className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500"
             />
             <p className="text-xs text-gray-400 mt-1">
-              How often LikedFM scans your music directory to detect already-downloaded 
+              How often Discbox scans your music directory to detect already-downloaded 
               tracks. Minimum 1 minute, maximum 1440 (24 hours). Default: 10 minutes.
             </p>
           </div>

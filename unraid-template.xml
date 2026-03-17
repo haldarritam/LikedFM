@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Container version="2">
-  <Name>LikedFM</Name>
-  <Repository>likedfm:latest</Repository>
+  <Name>Discbox</Name>
+  <Repository>discbox:latest</Repository>
   <Registry>https://hub.docker.com</Registry>
   <Network>bridge</Network>
   <Privileged>false</Privileged>
-  <Support>https://github.com/yourusername/likedfm</Support>
-  <Project>https://github.com/yourusername/likedfm</Project>
+  <Support>https://github.com/yourusername/discbox</Support>
+  <Project>https://github.com/yourusername/discbox</Project>
   <Category>Music</Category>
   <WebUI>http://[IP]:[PORT:8767]</WebUI>
-  <TemplateURL>https://raw.githubusercontent.com/yourusername/likedfm/main/unraid-template.xml</TemplateURL>
+  <TemplateURL>https://raw.githubusercontent.com/yourusername/discbox/main/unraid-template.xml</TemplateURL>
   <Icon>https://www.last.fm/static/images/lastfm_avatar_social.jpg</Icon>
   <DonateURL></DonateURL>
   <Description>
-    LikedFM is a music automation bridge that pulls your loved tracks, library albums, and playlists from Last.fm and automatically downloads them from YouTube using yt-dlp. Similar to Jellyseerr but for music.
+    Discbox is a music automation bridge that pulls your loved tracks, library albums, and playlists from Last.fm and automatically downloads them from YouTube using yt-dlp. Similar to Jellyseerr but for music.
   </Description>
 
   <Networking>
@@ -29,7 +29,7 @@
 
   <Data>
     <Volume>
-      <HostDir>/mnt/user/appdata/likedfm</HostDir>
+      <HostDir>/mnt/user/appdata/discbox</HostDir>
       <ContainerDir>/app/config</ContainerDir>
       <Mode>rw</Mode>
     </Volume>
@@ -156,6 +156,6 @@
   <Config Name="Sync Playlists" Target="SYNC_PLAYLISTS" Default="true" Mode="" Description="Enable playlist syncing" Type="Variable" Display="always" Required="false" Mask="false" />
   <Config Name="Host Music Path" Target="MUSIC_PATH" Default="/mnt/user/music" Mode="" Description="Host path to music library" Type="Variable" Display="always" Required="false" Mask="false" />
   <Config Name="Port" Target="PORT" Default="8767" Mode="" Description="Web UI port" Type="Variable" Display="always" Required="false" Mask="false" />
-  <Config Name="Config Path" Target="/app/config" Default="/mnt/user/appdata/likedfm" Mode="rw" Description="Appdata Path" Type="Path" Display="always" Required="true" Mask="false" />
+  <Config Name="Config Path" Target="/app/config" Default="/mnt/user/appdata/discbox" Mode="rw" Description="Appdata Path" Type="Path" Display="always" Required="true" Mask="false" />
   <Config Name="Music Path" Target="/music" Default="/mnt/user/music" Mode="rw" Description="Music Library Path (read-write for downloads)" Type="Path" Display="always" Required="true" Mask="false" />
 </Container>
