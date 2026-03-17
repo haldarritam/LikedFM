@@ -57,6 +57,21 @@ const frontendPath = '/app/frontend/dist';
 app.use(express.static(frontendPath));
 
 // Fallback to index.html for React Router
+// Info endpoint - returns server IP
+app.get('/api/info', (req, res) => {
+  const os = require('os')
+  const interfaces = os.networkInterfaces()
+  const ips = []
+  for (const iface of Object.values(interfaces)) {
+    for (const alias of iface) {
+      if (alias.family === 'IPv4' && alias.internal === false) {
+        ips.push(alias.address)
+      }
+    }
+  }
+  res.json({ ip: ips[0] || 'unknown', port: process.env.PORT || 8767 })
+})
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(frontendPath, 'index.html'));
 });
@@ -94,7 +109,8 @@ async function startApp() {
 
     // Start server
     const PORT = process.env.PORT || 8767;
-    app.listen(PORT, '0.0.0.0', () => {
+    
+app.listen(PORT, '0.0.0.0', () => {
       console.log(`🎵 Discbox server running on http://0.0.0.0:${PORT}`);
       console.log('📊 Dashboard: http://localhost:' + PORT);
       console.log('⚙️  Settings: http://localhost:' + PORT + '/settings');
