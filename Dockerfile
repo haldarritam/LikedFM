@@ -26,7 +26,7 @@ RUN curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
 RUN pip3 install mutagen --break-system-packages
 
 # Create non-root user
-RUN addgroup -g 1001 likedfm && adduser -D -u 1001 -G likedfm likedfm
+RUN addgroup -g 1001 discbox && adduser -D -u 1001 -G discbox discbox
 
 WORKDIR /app
 
@@ -49,11 +49,11 @@ COPY --from=frontend-build /app/frontend/dist ./frontend/dist
 # Create config and music directories with proper permissions
 RUN mkdir -p /app/config /music && \
     chmod 777 /app/config /music && \
-    chown -R likedfm:likedfm /app /music
+    chown -R discbox:discbox /app /music
 
 # Set environment variables
 ENV NODE_ENV=production
-ENV DATABASE_URL=file:/app/config/likedfm.db
+ENV DATABASE_URL=file:/app/config/discbox.db
 ENV PORT=8767
 ENV MUSIC_OUTPUT_DIR=/music
 ENV AUDIO_FORMAT=mp3
